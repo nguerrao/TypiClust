@@ -4,15 +4,15 @@
 
 import torch
 import numpy as np
-
+from torchvision import datasets
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
-
+from torch.utils.data import ConcatDataset
 from .randaugment import RandAugmentPolicy
 from .simclr_augment import get_simclr_ops
 import pycls.utils.logging as lu
-from pycls.datasets.custom_datasets import CIFAR10, CIFAR100, MNIST, SVHN
+from pycls.datasets.custom_datasets import CIFAR10, CIFAR100, MNIST, SVHN 
 from pycls.datasets.imbalanced_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
 from pycls.datasets.sampler import IndexedSequentialSampler
 from pycls.datasets.tiny_imagenet import TinyImageNet
@@ -70,6 +70,7 @@ class Data:
         self.dataset = cfg.DATASET.NAME
         self.data_dir = cfg.DATASET.ROOT_DIR
         self.datasets_accepted = cfg.DATASET.ACCEPTED
+        self.datasets_accepted.append('PASCALVOC')
         # self.target_dir = {"test": cfg.DATASET.TEST_DIR, "train": cfg.DATASET.TRAIN_DIR, "val": cfg.DATASET.VAL_DIR}
         self.eval_mode = False
         self.aug_method = cfg.DATASET.AUG_METHOD
@@ -145,6 +146,10 @@ class Data:
                 ops = [transforms.RandomCrop(32, padding=4)]
                 norm_mean = [0.4376, 0.4437, 0.4728]
                 norm_std = [0.1980, 0.2010, 0.1970]
+            
+            elif self.dataset == "PASCALVOC":
+                ops=[]
+            
             else:
                 raise NotImplementedError
 
@@ -168,6 +173,9 @@ class Data:
                 print("Preprocess Operations Selected ==> ", ops)
                 # logger.info("Preprocess Operations Selected ==> ", ops)
             return ops
+
+
+            
         else:
             print("Either the specified {} dataset is not added or there is no if condition in getDataset function of Data class".format(self.dataset))
             logger.info("Either the specified {} dataset is not added or there is no if condition in getDataset function of Data class".format(self.dataset))
@@ -207,6 +215,20 @@ class Data:
         if self.dataset == "MNIST":
             mnist = MNIST(save_dir, train=isTrain, transform=preprocess_steps, test_transform=test_preprocess_steps, download=isDownload)
             return mnist, len(mnist)
+        
+        elif self.dataset == "PASCALVOC":
+            if isTrain:
+                #pascalvoc_2007 = datasets.VOCDetection(save_dir, year="2007", image_set="trainval", download=isDownload)
+                pascalvoc = datasets.VOCDetection(save_dir, year="2012", image_set="train", download=isDownload)
+                #pascalvoc = ConcatDataset([pascalvoc_2007, pascalvoc_2012])
+            else:
+                pascalvoc = datasets.VOCDetection(save_dir, image_set="val", download=isDownload)
+           
+
+
+
+            return pascalvoc, len(pascalvoc)
+          
 
         elif self.dataset == "CIFAR10":
             cifar10 = CIFAR10(save_dir, train=isTrain, transform=preprocess_steps, test_transform=test_preprocess_steps, download=isDownload, only_features=only_features)
@@ -293,9 +315,11 @@ class Data:
         valSet = []
         
         n_dataPoints = len(data)
+        #print("n_dataPoints", n_dataPoints)
         all_idx = [i for i in range(n_dataPoints)]
         np.random.shuffle(all_idx)
         train_splitIdx = int(train_split_ratio*n_dataPoints)
+        print("rain_splitIdx ", train_splitIdx)
         #To get the validation index from end we multiply n_datapoints with 1-val_ratio 
         val_splitIdx = int((1-val_split_ratio)*n_dataPoints)
         #Check there should be no overlap with train and val data
@@ -529,6 +553,7 @@ class Data:
         assert isinstance(valSetPath, str), "Expected valSetPath to be a string."
 
         lSet = np.load(lSetPath, allow_pickle=True)
+        #print("lSet",lSetPath)
         uSet = np.load(uSetPath, allow_pickle=True)
         valSet = np.load(valSetPath, allow_pickle=True)
 

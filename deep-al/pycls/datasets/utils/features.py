@@ -8,6 +8,7 @@ DATASET_FEATURES_DICT = {
             'IMAGENET50': '../../dino/runs/trainfeat.pth',
             'IMAGENET100': '../../dino/runs/trainfeat.pth',
             'IMAGENET200': '../../dino/runs/trainfeat.pth',
+            'PASCALVOC':'../../scan/results/pascalvoc/pretext/features_seed{seed}.npy',
         },
     'test':
         {
@@ -17,6 +18,7 @@ DATASET_FEATURES_DICT = {
             'IMAGENET50': '../../dino/runs/testfeat.pth',
             'IMAGENET100': '../../dino/runs/testfeat.pth',
             'IMAGENET200': '../../dino/runs/testfeat.pth',
+            'PASCALVOC':'../../scan/results/pascalvoc/pretext/test_features_seed{seed}.npy',
         }
 }
 
@@ -26,6 +28,7 @@ def load_features(ds_name, seed=1, train=True, normalized=True):
     fname = DATASET_FEATURES_DICT[split][ds_name].format(seed=seed)
     if fname.endswith('.npy'):
         features = np.load(fname)
+        print("features are", len(features))
     elif fname.endswith('.pth'):
         features = torch.load(fname)
     else:

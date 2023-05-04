@@ -260,6 +260,13 @@ def dump_cfg(cfg):
     with open(cfg_file, 'w') as f:
         cfg.dump(stream=f)
 
+def dump_file(cfg, selected_files):
+    """Dumps the file to the output directory."""
+    file = os.path.join(cfg.EXP_DIR, 'selected_files.txt')
+    with open(file, 'w') as f:
+        for selected_image_file_name in selected_files:
+            f.write(selected_image_file_name.strip(".jpg") + '\n')
+
 
 def load_cfg(out_dir, cfg_dest='config.yaml'):
     """Loads config from specified output directory."""
