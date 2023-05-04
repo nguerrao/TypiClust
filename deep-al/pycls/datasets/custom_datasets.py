@@ -166,3 +166,6 @@ class SVHN(torchvision.datasets.SVHN):
 
 
         return img, target
+
+
+

@@ -17,7 +17,7 @@ add_path(os.path.abspath('..'))
 
 from pycls.al.ActiveLearning import ActiveLearning
 import pycls.core.builders as model_builder
-from pycls.core.config import cfg, dump_cfg
+from pycls.core.config import cfg, dump_cfg, dump_file
 import pycls.core.losses as losses
 import pycls.core.optimizer as optim
 from pycls.datasets.data import Data
@@ -126,6 +126,8 @@ def main(cfg):
     cfg.DATASET.ROOT_DIR = os.path.join(os.path.abspath('../..'), cfg.DATASET.ROOT_DIR)
     data_obj = Data(cfg)
     train_data, train_size = data_obj.getDataset(save_dir=cfg.DATASET.ROOT_DIR, isTrain=True, isDownload=True)
+    #print("train_data", type(train_data))
+    # print("train_size", train_size)
     test_data, test_size = data_obj.getDataset(save_dir=cfg.DATASET.ROOT_DIR, isTrain=False, isDownload=True)
     cfg.ACTIVE_LEARNING.INIT_L_RATIO = args.initial_size / train_size
     print("\nDataset {} Loaded Sucessfully.\nTotal Train Size: {} and Total Test Size: {}\n".format(cfg.DATASET.NAME, train_size, test_size))
@@ -187,27 +189,45 @@ def main(cfg):
             os.mkdir(episode_dir)
         cfg.EPISODE_DIR = episode_dir
 
+        file_names=[]
+        #reading the filenames.txt file 
+        with open('../../scan/results/pascalvoc/pretext/filenames.txt', 'r') as f:
+            lines = f.readlines()
+        
+        for line in lines:
+            file_names.append(line.strip())
+            
+
+    
+
+        #add object detection part for this 
         # Train model
-        print("======== TRAINING ========")
-        logger.info("======== TRAINING ========")
+        # print("======== TRAINING ========")
+        # logger.info("======== TRAINING ========")
 
-        best_val_acc, best_val_epoch, checkpoint_file = train_model(lSet_loader, valSet_loader, model, optimizer, cfg)
+        # best_val_acc, best_val_epoch, checkpoint_file = train_model(lSet_loader, valSet_loader, model, optimizer, cfg)
 
-        print("Best Validation Accuracy: {}\nBest Epoch: {}\n".format(round(best_val_acc, 4), best_val_epoch))
-        logger.info("EPISODE {} Best Validation Accuracy: {}\tBest Epoch: {}\n".format(cur_episode, round(best_val_acc, 4), best_val_epoch))
+        # print("Best Validation Accuracy: {}\nBest Epoch: {}\n".format(round(best_val_acc, 4), best_val_epoch))
+        # logger.info("EPISODE {} Best Validation Accuracy: {}\tBest Epoch: {}\n".format(cur_episode, round(best_val_acc, 4), best_val_epoch))
 
-        # Test best model checkpoint
-        print("======== TESTING ========\n")
-        logger.info("======== TESTING ========\n")
-        test_acc = test_model(test_loader, checkpoint_file, cfg, cur_episode)
-        print("Test Accuracy: {}.\n".format(round(test_acc, 4)))
-        logger.info("EPISODE {} Test Accuracy {}.\n".format(cur_episode, test_acc))
+        # # Test best model checkpoint
+        # print("======== TESTING ========\n")
+        # logger.info("======== TESTING ========\n")
+        # test_acc = test_model(test_loader, checkpoint_file, cfg, cur_episode)
+        # print("Test Accuracy: {}.\n".format(round(test_acc, 4)))
+        # logger.info("EPISODE {} Test Accuracy {}.\n".format(cur_episode, test_acc))
 
         # No need to perform active sampling in the last episode iteration
         if cur_episode == cfg.ACTIVE_LEARNING.MAX_ITER:
             # Save current lSet, uSet in the final episode directory
             data_obj.saveSet(lSet, 'lSet', cfg.EPISODE_DIR)
             data_obj.saveSet(uSet, 'uSet', cfg.EPISODE_DIR)
+            # print("lset", lSet)
+            # print("lsettype", type(lSet))
+            selected_files = [file_names[i] for i in lSet]
+            #print("selected_files", selected_files)
+            dump_file(cfg, selected_files)
+
             break
 
         # Active Sample 
@@ -215,7 +235,7 @@ def main(cfg):
         logger.info("======== ACTIVE SAMPLING ========\n")
         al_obj = ActiveLearning(data_obj, cfg)
         clf_model = model_builder.build_model(cfg)
-        clf_model = cu.load_checkpoint(checkpoint_file, clf_model)
+        #clf_model = cu.load_checkpoint(checkpoint_file, clf_model) #work with training 
         activeSet, new_uSet = al_obj.sample_from_uSet(clf_model, lSet, uSet, train_data)
 
         # Save current lSet, new_uSet and activeSet in the episode directory
@@ -234,6 +254,7 @@ def main(cfg):
         print("================================\n\n")
         logger.info("================================\n\n")
 
+    
         if not cfg.ACTIVE_LEARNING.FINE_TUNE:
             # start model from scratch
             print('Starting model from scratch - ignoring existing weights.')
@@ -243,7 +264,7 @@ def main(cfg):
             print(model.load_state_dict(model_init_state))
             print(optimizer.load_state_dict(opt_init_state))
 
-        os.remove(checkpoint_file)
+        #os.remove(checkpoint_file)
 
 
 
@@ -527,6 +548,7 @@ def test_epoch(test_loader, model, test_meter, cur_epoch):
     test_meter.reset()
 
     return misclassifications/totalSamples
+
 
 
 
