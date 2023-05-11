@@ -6,7 +6,7 @@
 """Configuration file (powered by YACS)."""
 
 import os
-
+import json
 from yacs.config import CfgNode as CN
 
 
@@ -265,7 +265,37 @@ def dump_file(cfg, selected_files):
     file = os.path.join(cfg.EXP_DIR, 'selected_files.txt')
     with open(file, 'w') as f:
         for selected_image_file_name in selected_files:
-            f.write(selected_image_file_name.strip(".jpg") + '\n')
+            if cfg.DATASET.NAME == "MSCOCO":
+                f.write(selected_image_file_name + '\n')
+            else:
+                f.write(selected_image_file_name.strip(".jpg") + '\n')
+
+
+def convert_to_json(cfg,  selected_files):
+    """Converts a COCO format annotation file to a new file containing only the information for selected images."""
+    json_file = os.path.join(cfg.EXP_DIR, 'instances_train2017_selected.json')
+    # Load initial annotations_train2017.json file
+    with open('../../data/coco/annotations/instances_train2017.json', 'r') as f:
+        coco_json = json.load(f)
+
+    # Create new dictionary with only the information for the selected images
+    selected_coco_json = {}
+    selected_coco_json['info'] = coco_json['info']
+    selected_coco_json['licenses'] = coco_json['licenses']
+    selected_coco_json['images'] = []
+    selected_coco_json['annotations'] = []
+    selected_coco_json['categories'] = coco_json['categories']
+
+    for image in coco_json['images']:
+        if image['file_name'] in  selected_files:
+            selected_coco_json['images'].append(image)
+            for annotation in coco_json['annotations']:
+                if annotation['image_id'] == image['id']:
+                    selected_coco_json['annotations'].append(annotation)
+
+    # Write the new COCO annotation file
+    with open(json_file, 'w') as f:
+        json.dump(selected_coco_json, f)
 
 
 def load_cfg(out_dir, cfg_dest='config.yaml'):

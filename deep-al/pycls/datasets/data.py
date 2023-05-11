@@ -71,11 +71,14 @@ class Data:
         self.data_dir = cfg.DATASET.ROOT_DIR
         self.datasets_accepted = cfg.DATASET.ACCEPTED
         self.datasets_accepted.append('PASCALVOC')
+        self.datasets_accepted.append('MSCOCO') #add dataset 
         # self.target_dir = {"test": cfg.DATASET.TEST_DIR, "train": cfg.DATASET.TRAIN_DIR, "val": cfg.DATASET.VAL_DIR}
         self.eval_mode = False
         self.aug_method = cfg.DATASET.AUG_METHOD
         self.rand_augment_N = 1 if cfg is None else cfg.RANDAUG.N
         self.rand_augment_M = 5 if cfg is None else cfg.RANDAUG.M
+        self.path_to_data="../../../data/coco/images/train2017"
+        self.path_to_json="../../data/coco/annotations/instances_train2017.json"
 
     def about(self):
         """
@@ -149,7 +152,10 @@ class Data:
             
             elif self.dataset == "PASCALVOC":
                 ops=[]
-            
+
+            elif self.dataset == "MSCOCO":
+                ops=[]
+
             else:
                 raise NotImplementedError
 
@@ -223,11 +229,35 @@ class Data:
                 #pascalvoc = ConcatDataset([pascalvoc_2007, pascalvoc_2012])
             else:
                 pascalvoc = datasets.VOCDetection(save_dir, image_set="val", download=isDownload)
-           
-
-
+        
 
             return pascalvoc, len(pascalvoc)
+        
+        elif self.dataset == "MSCOCO":
+           
+            if isTrain:
+                all_mscoco = datasets.CocoDetection(root=self.path_to_data, annFile=self.path_to_json) # load the whole dataset
+
+                # extract the indices for the annotated images 
+                indices_annotated_images=[]
+                #reading the filenames.txt file 
+                with open('../pycls/datasets/annotated_train_images_indices_2017.txt', 'r') as f:
+                    lines = f.readlines()
+
+                for line in lines:
+                    indices_annotated_images.append(line.strip())
+                
+                # convert to int
+                int_indices_annotated_images = [int(x) for x in indices_annotated_images]
+                mscoco=torch.utils.data.Subset(all_mscoco, int_indices_annotated_images) #dataset of the annotated images only 
+
+                    
+            else:
+                mscoco = datasets.CocoDetection(root=self.path_to_data, annFile=self.path_to_json)
+            
+        
+            return mscoco, len(mscoco)
+
           
 
         elif self.dataset == "CIFAR10":

@@ -17,7 +17,7 @@ add_path(os.path.abspath('..'))
 
 from pycls.al.ActiveLearning import ActiveLearning
 import pycls.core.builders as model_builder
-from pycls.core.config import cfg, dump_cfg, dump_file
+from pycls.core.config import cfg, dump_cfg, dump_file, convert_to_json
 import pycls.core.losses as losses
 import pycls.core.optimizer as optim
 from pycls.datasets.data import Data
@@ -125,6 +125,8 @@ def main(cfg):
     print("\n======== PREPARING DATA AND MODEL ========\n")
     cfg.DATASET.ROOT_DIR = os.path.join(os.path.abspath('../..'), cfg.DATASET.ROOT_DIR)
     data_obj = Data(cfg)
+    # Print the directory path
+    print("Directory path:", cfg.DATASET.ROOT_DIR)
     train_data, train_size = data_obj.getDataset(save_dir=cfg.DATASET.ROOT_DIR, isTrain=True, isDownload=True)
     #print("train_data", type(train_data))
     # print("train_size", train_size)
@@ -191,7 +193,8 @@ def main(cfg):
 
         file_names=[]
         #reading the filenames.txt file 
-        with open('../../scan/results/pascalvoc/pretext/filenames.txt', 'r') as f:
+        #with open('../../scan/results/pascalvoc/pretext/filenames.txt', 'r') as f:
+        with open('../../scan/results/mscoco/pretext/filenames.txt', 'r') as f:
             lines = f.readlines()
         
         for line in lines:
@@ -227,6 +230,8 @@ def main(cfg):
             selected_files = [file_names[i] for i in lSet]
             #print("selected_files", selected_files)
             dump_file(cfg, selected_files)
+            convert_to_json(cfg,  selected_files)
+
 
             break
 
