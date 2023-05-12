@@ -31,8 +31,7 @@ class ProbCover:
         represented by a list of edges (a sparse matrix).
         stored in a dataframe
         """
-        xs, ys = [], []
-        #xs, ys, ds = [], [], []
+        xs, ys, ds = [], [], []
         print(f'Start constructing graph using delta={self.delta}')
         # distance computations are done in GPU
         cuda_feats = torch.from_numpy(self.rel_features).cuda() #torch.tensor(self.rel_features).cuda() #torch.from_numpy(self.rel_features).cuda()
@@ -47,15 +46,14 @@ class ProbCover:
             x, y = mask.nonzero().T
             xs.append(x.cpu() + batch_size * i)
             ys.append(y.cpu())
-            #ds.append(dist[mask].cpu())
+            ds.append(dist[mask].cpu())
 
         xs = torch.cat(xs).numpy()
         ys = torch.cat(ys).numpy()
-        #ds = torch.cat(ds).numpy()
+        ds = torch.cat(ds).numpy()
         
 
-        df = pd.DataFrame({'x': xs, 'y': ys})
-        #df = pd.DataFrame({'x': xs, 'y': ys, 'd': ds})
+        df = pd.DataFrame({'x': xs, 'y': ys, 'd': ds})
         print(f'Finished constructing graph using delta={self.delta}')
         print(f'Graph contains {len(df)} edges.')
         return df
