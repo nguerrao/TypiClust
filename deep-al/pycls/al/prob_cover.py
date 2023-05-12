@@ -23,7 +23,7 @@ class ProbCover:
     def get_cosine_similarity(self,feature_vec_1, feature_vec_2): 
         return (1-cosine_similarity(feature_vec_1, feature_vec_2))
 
-    def construct_graph(self, batch_size=50):
+    def construct_graph(self, batch_size=1):
         """
         creates a directed graph where:
         x->y iff l2(x,y) < delta.
