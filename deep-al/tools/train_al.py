@@ -62,6 +62,9 @@ def argparser():
     parser.add_argument('--finetune', help='Whether to continue with existing model between rounds', type=str2bool, default=False)
     parser.add_argument('--linear_from_features', help='Whether to use a linear layer from self-supervised features', action='store_true')
     parser.add_argument('--delta', help='Relevant only for ProbCover', default=0.6, type=float)
+    parser.add_argument('--clip_selection', help='Relevant only to use CLIP selection with ProbCover', default=False, type=bool)
+    parser.add_argument('--const_threshold', help='Relevant only to use CLIP selection with ProbCover to balance the dataset', default=1.2, type=float)
+
 
     return parser
 
@@ -141,6 +144,20 @@ def main(cfg):
     cfg.ACTIVE_LEARNING.LSET_PATH = lSet_path
     cfg.ACTIVE_LEARNING.USET_PATH = uSet_path
     cfg.ACTIVE_LEARNING.VALSET_PATH = valSet_path
+  
+    cfg.coverage=0
+
+    if cfg.DATASET.NAME=="MSCOCO":
+        cfg.num_class=80
+        cfg.count_class=[{i: 0 for i in range(cfg.num_class)}]
+        cfg.counts=[{i: 0 for i in range(cfg.num_class)}]
+        cfg.threshold=[{i: 0 for i in range(cfg.num_class)}]
+        
+    elif cfg.DATASET.NAME=="PASCALVOC":
+        cfg.num_class=20
+        cfg.count_class=[{i: 0 for i in range( cfg.num_class)}]
+        cfg.counts=[{i: 0 for i in range(cfg.num_class)}]
+        cfg.threshold=[{i: 0 for i in range(cfg.num_class)}]
 
     lSet, uSet, valSet = data_obj.loadPartitions(lSetPath=cfg.ACTIVE_LEARNING.LSET_PATH, \
             uSetPath=cfg.ACTIVE_LEARNING.USET_PATH, valSetPath = cfg.ACTIVE_LEARNING.VALSET_PATH)
@@ -179,7 +196,9 @@ def main(cfg):
 
     print("AL Query Method: {}\nMax AL Episodes: {}\n".format(cfg.ACTIVE_LEARNING.SAMPLING_FN, cfg.ACTIVE_LEARNING.MAX_ITER))
     logger.info("AL Query Method: {}\nMax AL Episodes: {}\n".format(cfg.ACTIVE_LEARNING.SAMPLING_FN, cfg.ACTIVE_LEARNING.MAX_ITER))
+    
 
+    #print("======== cfg.num_class======== ", cfg.num_class)
     for cur_episode in range(0, cfg.ACTIVE_LEARNING.MAX_ITER+1):
 
         print("======== EPISODE {} BEGINS ========\n".format(cur_episode))
@@ -193,9 +212,13 @@ def main(cfg):
 
         file_names=[]
         #reading the filenames.txt file 
-        #with open('../../scan/results/pascalvoc/pretext/filenames.txt', 'r') as f:
-        with open('../../scan/results/mscoco/pretext/filenames.txt', 'r') as f:
-            lines = f.readlines()
+        if cfg.DATASET.NAME=="MSCOCO":
+            with open('../../scan/results/mscoco/pretext/filenames.txt', 'r') as f:
+                lines = f.readlines()
+
+        elif cfg.DATASET.NAME=="PASCALVOC":
+            with open('../../scan/results/pascalvoc/pretext/filenames.txt', 'r') as f:
+                lines = f.readlines()
         
         for line in lines:
             file_names.append(line.strip())
@@ -256,8 +279,13 @@ def main(cfg):
 
         print("Active Sampling Complete. After Episode {}:\nNew Labeled Set: {}, New Unlabeled Set: {}, Active Set: {}\n".format(cur_episode, len(lSet), len(uSet), len(activeSet)))
         logger.info("Active Sampling Complete. After Episode {}:\nNew Labeled Set: {}, New Unlabeled Set: {}, Active Set: {}\n".format(cur_episode, len(lSet), len(uSet), len(activeSet)))
+        logger.info('Counts per images is: {}'.format(cfg.counts[0]))
+        logger.info('Threshold is: {}'.format(cfg.threshold[0]))
+        logger.info('CLASS count: {}'.format(cfg.count_class[0]))
+        logger.info('Coverage is: {}'.format(cfg.coverage))
         print("================================\n\n")
         logger.info("================================\n\n")
+
 
     
         if not cfg.ACTIVE_LEARNING.FINE_TUNE:
@@ -565,6 +593,8 @@ if __name__ == "__main__":
     cfg.ACTIVE_LEARNING.SAMPLING_FN = args.al
     cfg.ACTIVE_LEARNING.BUDGET_SIZE = args.budget
     cfg.ACTIVE_LEARNING.DELTA = args.delta
+    cfg.CLIP_SELECTION= args.clip_selection
+    cfg.CONST_THRESHOLD = args.const_threshold
     cfg.RNG_SEED = args.seed
     cfg.MODEL.LINEAR_FROM_FEATURES = args.linear_from_features
 

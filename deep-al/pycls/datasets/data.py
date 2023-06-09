@@ -224,9 +224,9 @@ class Data:
         
         elif self.dataset == "PASCALVOC":
             if isTrain:
-                #pascalvoc_2007 = datasets.VOCDetection(save_dir, year="2007", image_set="trainval", download=isDownload)
-                pascalvoc = datasets.VOCDetection(save_dir, year="2012", image_set="train", download=isDownload)
-                #pascalvoc = ConcatDataset([pascalvoc_2007, pascalvoc_2012])
+                pascalvoc_2007 = datasets.VOCDetection(save_dir, year="2007", image_set="trainval", download=isDownload)
+                pascalvoc_2012 = datasets.VOCDetection(save_dir, year="2012", image_set="trainval", download=isDownload)
+                pascalvoc = ConcatDataset([pascalvoc_2007, pascalvoc_2012])
             else:
                 pascalvoc = datasets.VOCDetection(save_dir, image_set="val", download=isDownload)
         
@@ -250,7 +250,6 @@ class Data:
                 # convert to int
                 int_indices_annotated_images = [int(x) for x in indices_annotated_images]
                 mscoco=torch.utils.data.Subset(all_mscoco, int_indices_annotated_images) #dataset of the annotated images only 
-
                     
             else:
                 mscoco = datasets.CocoDetection(root=self.path_to_data, annFile=self.path_to_json)

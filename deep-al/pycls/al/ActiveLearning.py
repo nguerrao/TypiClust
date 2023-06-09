@@ -4,6 +4,7 @@
 
 from .Sampling import Sampling, CoreSetMIPSampling, AdversarySampler
 import pycls.utils.logging as lu
+import numpy as np
 
 logger = lu.get_logger(__name__)
 
@@ -80,9 +81,13 @@ class ActiveLearning:
             activeSet, uSet = tpc.select_samples()
 
         elif self.cfg.ACTIVE_LEARNING.SAMPLING_FN.lower() in ["prob_cover", 'probcover']:
+            if self.cfg.DATASET.NAME=="MSCOCO":
+                text_embeddings=np.load('/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/mscoco/pretext/text_embeddings_mscoco.npy')
+            elif self.cfg.DATASET.NAME=="PASCALVOC":
+                text_embeddings=np.load('/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/pascalvoc/pretext/text_embeddings_pascalvoc.npy')
             from .prob_cover import ProbCover
             probcov = ProbCover(self.cfg, lSet, uSet, budgetSize=self.cfg.ACTIVE_LEARNING.BUDGET_SIZE,
-                            delta=self.cfg.ACTIVE_LEARNING.DELTA)
+                            delta=self.cfg.ACTIVE_LEARNING.DELTA, clip_selection=self.cfg.CLIP_SELECTION, const_threshold=self.cfg.CONST_THRESHOLD, text_embeddings=text_embeddings)
             activeSet, uSet = probcov.select_samples()
 
         elif self.cfg.ACTIVE_LEARNING.SAMPLING_FN == "dbal" or self.cfg.ACTIVE_LEARNING.SAMPLING_FN == "DBAL":
