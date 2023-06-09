@@ -8,7 +8,7 @@
 import os
 import json
 from yacs.config import CfgNode as CN
-
+from tqdm import tqdm
 
 # Global config object
 _C = CN()
@@ -286,7 +286,7 @@ def convert_to_json(cfg,  selected_files):
     selected_coco_json['annotations'] = []
     selected_coco_json['categories'] = coco_json['categories']
 
-    for image in coco_json['images']:
+    for image in tqdm(coco_json['images']):
         if image['file_name'] in  selected_files:
             selected_coco_json['images'].append(image)
             for annotation in coco_json['annotations']:
