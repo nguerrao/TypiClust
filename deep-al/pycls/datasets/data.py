@@ -17,6 +17,7 @@ from pycls.datasets.imbalanced_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
 from pycls.datasets.sampler import IndexedSequentialSampler
 from pycls.datasets.tiny_imagenet import TinyImageNet
 logger = lu.get_logger(__name__)
+import os
 
 class _RepeatSampler(object):
     """ Sampler that repeats forever.
@@ -70,16 +71,14 @@ class Data:
         self.dataset = cfg.DATASET.NAME
         self.data_dir = cfg.DATASET.ROOT_DIR
         self.datasets_accepted = cfg.DATASET.ACCEPTED
-        self.datasets_accepted.append('PASCALVOC')
-        self.datasets_accepted.append('MSCOCO') #add dataset 
         # self.target_dir = {"test": cfg.DATASET.TEST_DIR, "train": cfg.DATASET.TRAIN_DIR, "val": cfg.DATASET.VAL_DIR}
         self.eval_mode = False
         self.aug_method = cfg.DATASET.AUG_METHOD
         self.rand_augment_N = 1 if cfg is None else cfg.RANDAUG.N
         self.rand_augment_M = 5 if cfg is None else cfg.RANDAUG.M
-        self.path_to_data="../../../data/coco/images/train2017"
-        self.path_to_json="../../data/coco/annotations/instances_train2017.json"
-
+        self.path_to_data=os.path.join(cfg.DATASET.ROOT_DIR,'coco/images/train2017')
+        self.path_to_json=os.path.join(cfg.DATASET.ROOT_DIR,'coco/annotations/instances_train2017.json')
+        
     def about(self):
         """
         Show all properties of this class.

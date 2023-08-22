@@ -8,8 +8,8 @@ DATASET_FEATURES_DICT = {
             'IMAGENET50': '../../dino/runs/trainfeat.pth',
             'IMAGENET100': '../../dino/runs/trainfeat.pth',
             'IMAGENET200': '../../dino/runs/trainfeat.pth',
-            'PASCALVOC':'../../scan/results/pascalvoc/pretext/features_seed{seed}.npy',
-            'MSCOCO':'../../scan/results/mscoco/pretext/features_seed{seed}.npy',
+            'PASCALVOC':'../../scan/results/pascalvoc/pretext/features_seed{seed}_{model_features}.npy',
+            'MSCOCO':'../../scan/results/mscoco/pretext/features_seed{seed}_{model_features}.npy',
         },
     'test':
         {
@@ -24,18 +24,18 @@ DATASET_FEATURES_DICT = {
         }
 }
 
-def load_features(ds_name, seed=1, train=True, normalized=True):
+def load_features(ds_name, seed=1, model_features='clip', train=True, normalized=True):
     " load pretrained features for a dataset "
     split = "train" if train else "test"
-    fname = DATASET_FEATURES_DICT[split][ds_name].format(seed=seed)
+    fname = DATASET_FEATURES_DICT[split][ds_name].format(seed=seed, model_features=model_features)
     if fname.endswith('.npy'):
         features = np.load(fname)
-        print("features embedding are", len(features))
-        if features.shape[1] == 1024:
+        if model_features == "clip":
             print("======== USING CLIP-RN50 MODEL FOR THE EMBEDDINGS ========")
-        elif features.shape[1] == 2048:
+        elif model_features == "dinov2":
+            print("======== USING dinov2 MODEL FOR THE EMBEDDINGS  ========")
+        elif model_features == "simclr":
             print(" ======== USING simCLR-RN50 MODEL FOR THE EMBEDDINGS ========")
-
 
     elif fname.endswith('.pth'):
         features = torch.load(fname)

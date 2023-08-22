@@ -81,13 +81,28 @@ class ActiveLearning:
             activeSet, uSet = tpc.select_samples()
 
         elif self.cfg.ACTIVE_LEARNING.SAMPLING_FN.lower() in ["prob_cover", 'probcover']:
-            if self.cfg.DATASET.NAME=="MSCOCO":
-                text_embeddings=np.load('/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/mscoco/pretext/text_embeddings_mscoco.npy')
-            elif self.cfg.DATASET.NAME=="PASCALVOC":
-                text_embeddings=np.load('/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/pascalvoc/pretext/text_embeddings_pascalvoc.npy')
+            if self.cfg.DATASET.NAME == "MSCOCO":
+                
+                text_embeddings=np.load(self.cfg.TEXT_EMBEDDING_COCO) # you can generate features for different texts using this jupyter notebook: /home/ubuntu/master_thesis/covering_lens/TypiClust/deep-al/features_extraction/CLIP/extract_text_features_mscoco.ipynb
+                
+                if text_embeddings.shape[0] == 80:
+                    print("======== USING CLASS NAMES FOR TEXT EMBEDDINGS FOR MSCOCO ========")
+              
+
+            elif self.cfg.DATASET.NAME == "PASCALVOC":
+                
+                text_embeddings=np.load(self.cfg.TEXT_EMBEDDING_PASCALVOC) # you can generate features for different texts using this jupyter notebook: /home/ubuntu/master_thesis/covering_lens/TypiClust/deep-al/features_extraction/CLIP/extract_text_features_pascalvoc.ipynb
+    
+
+                if text_embeddings.shape[0] == 20:
+                    print("======== USING CLASS NAMES FOR TEXT EMBEDDINGS FOR PASCALVOC ========")
+
             from .prob_cover import ProbCover
             probcov = ProbCover(self.cfg, lSet, uSet, budgetSize=self.cfg.ACTIVE_LEARNING.BUDGET_SIZE,
-                            delta=self.cfg.ACTIVE_LEARNING.DELTA, clip_selection=self.cfg.CLIP_SELECTION, const_threshold=self.cfg.CONST_THRESHOLD, text_embeddings=text_embeddings)
+                                delta=self.cfg.ACTIVE_LEARNING.DELTA, method=self.cfg.METHOD, const_threshold=self.cfg.CONST_THRESHOLD, 
+                                const_threshold_mean=self.cfg.CONST_THRESHOLD_MEAN, alpha=self.cfg.ALPHA, number_of_samples=self.cfg.NUMBER_OF_SAMPLES, 
+                                number_of_smallest_values_to_consider=self.cfg.NUMBER_OF_SMALLEST_VALUES_TO_CONSIDER, text_embeddings=text_embeddings)
+            
             activeSet, uSet = probcov.select_samples()
 
         elif self.cfg.ACTIVE_LEARNING.SAMPLING_FN == "dbal" or self.cfg.ACTIVE_LEARNING.SAMPLING_FN == "DBAL":

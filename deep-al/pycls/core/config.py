@@ -226,7 +226,7 @@ _C.DATASET.VAL_RATIO = 0.1
 # Data augmentation methods - 'simclr', 'randaug', 'hflip'
 _C.DATASET.AUG_METHOD = 'hflip' 
 # Accepted Datasets
-_C.DATASET.ACCEPTED = ['MNIST','SVHN','CIFAR10','CIFAR100','TINYIMAGENET', 'IMBALANCED_CIFAR10', 'IMBALANCED_CIFAR100', 'IMAGENET50', 'IMAGENET100', 'IMAGENET200']
+_C.DATASET.ACCEPTED = ['MNIST','SVHN','CIFAR10','CIFAR100','TINYIMAGENET', 'IMBALANCED_CIFAR10', 'IMBALANCED_CIFAR100', 'IMAGENET50', 'IMAGENET100', 'IMAGENET200', 'PASCALVOC', 'MSCOCO']
 
 def assert_cfg():
     """Checks config values invariants."""
@@ -262,20 +262,55 @@ def dump_cfg(cfg):
 
 def dump_file(cfg, selected_files):
     """Dumps the file to the output directory."""
-    file = os.path.join(cfg.EXP_DIR, 'selected_files.txt')
-    with open(file, 'w') as f:
-        for selected_image_file_name in selected_files:
-            if cfg.DATASET.NAME == "MSCOCO":
-                f.write(selected_image_file_name + '\n')
-            else:
-                f.write(selected_image_file_name.strip(".jpg") + '\n')
 
+    if cfg.DATASET.NAME == "MSCOCO":
+        
+        if cfg.MODEL_FEATURES == 'clip':
+            selected_filenames = "train_active_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+        else: 
+            selected_filenames= "train_active_model_{}_budget_{}_delta_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
+        
+        file = os.path.join(cfg.EXP_DIR, selected_filenames)
+
+        with open(file, 'w') as f:
+            for selected_image_file_name in selected_files:
+                f.write(selected_image_file_name + '\n')
+
+        convert_to_json(cfg,  selected_files)
+    else:
+        # reading the filenames.txt file
+        filename_2012 = []
+        with open(os.path.join(cfg.DATASET.ROOT_DIR,'VOCdevkit/VOC2012/ImageSets/Main/trainval.txt'), 'r') as f:
+            lines = f.readlines()
+        for line in lines:
+            filename_2012.append(line.strip())
+
+        if cfg.MODEL_FEATURES == 'clip':
+            selected_filenames_2007 = "train_active_2007_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+            selected_filenames_2012 = "train_active_2012_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+        else: 
+            selected_filenames_2007 = "train_active_2007_model_{}_budget_{}_delta_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
+            selected_filenames_2012 = "train_active_2012_model_{}_budget_{}_delta_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
+        file_1= os.path.join(cfg.EXP_DIR, selected_filenames_2007)
+        file_2= os.path.join(cfg.EXP_DIR, selected_filenames_2012)
+        with open(file_1, 'w') as file_1, open(file_2, 'w') as file_2:
+            for selected_image_file_name in selected_files:
+                selected_image_file_name = selected_image_file_name.strip(".jpg")
+                if selected_image_file_name in filename_2012:
+                    file_2.write(selected_image_file_name + '\n')
+                else:
+                    file_1.write(selected_image_file_name + '\n')
 
 def convert_to_json(cfg,  selected_files):
     """Converts a COCO format annotation file to a new file containing only the information for selected images."""
-    json_file = os.path.join(cfg.EXP_DIR, 'instances_train2017_selected.json')
+
+    if cfg.MODEL_FEATURES == 'clip':
+        json_filename= "instances_train2017_selected_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.json".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+    else: 
+        json_filename= "instances_train2017_selected_model_{}_budget_{}_delta_{}.json".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
+    json_file = os.path.join(cfg.EXP_DIR, json_filename)
     # Load initial annotations_train2017.json file
-    with open('../../data/coco/annotations/instances_train2017.json', 'r') as f:
+    with open(os.path.join(cfg.DATASET.ROOT_DIR,'coco/annotations/instances_train2017.json'), 'r') as f:
         coco_json = json.load(f)
 
     # Create new dictionary with only the information for the selected images

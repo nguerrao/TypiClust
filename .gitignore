@@ -34,3 +34,7 @@ output/
 *.ipynb_checkpoints/
 data/
 scan/results/
+deep-al/pycls/al/analysis/
+deep-al/pycls/al copy/
+deep-al/tools/bash_files/
+report/

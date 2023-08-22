@@ -2,7 +2,7 @@
 RNG_SEED: 1
 DATASET:
   NAME: PASCALVOC
-  ROOT_DIR: './data'
+  ROOT_DIR: '/home/ubuntu/mmdetection_od/mmdetection/data'
   VAL_RATIO: 0.1
   AUG_METHOD: 'hflip'
 MODEL:
