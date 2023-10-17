@@ -3,7 +3,7 @@
 The project consists of the following steps:
 
 1. **Features extraction**: Image embeddings are extracted using CLIP model. For a detailed walkthrough, refer to the[Jupyter notebook](deep-al/features_extraction/CLIP/CLIP_embeddings_pascalvoc.ipynb) in the project.
-2. **Labels extraction**: Labels for each image are predicted using the OWL-ViT model. For a detailed walkthrough, refer to the[Jupyter notebook](topline_csv/OWL-ViT.ipynb) in the project.
+2. **Labels extraction**: Labels for each image are predicted using the OWL-ViT model. For a detailed walkthrough, refer to the[Jupyter notebook](deep-al/features_extraction/OWL-ViT/OWL-ViT.ipynb) in the project.
 3. **Selection**: 
     1. **Using CLIP**: Selection Using ProbCover algorithm with CLIP supervision. For more details about this method, see the [PDF report](Master_thesis_Report.pdf) provided.
     This can be done by running (for PASCAL VOC by default):
