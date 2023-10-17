@@ -17,7 +17,7 @@ add_path(os.path.abspath('..'))
 
 from pycls.al.ActiveLearning import ActiveLearning
 import pycls.core.builders as model_builder
-from pycls.core.config import cfg, dump_cfg, dump_file
+from pycls.core.config import cfg, dump_cfg, dump_file, dump_file_episode
 import pycls.core.losses as losses
 import pycls.core.optimizer as optim
 from pycls.datasets.data import Data
@@ -49,6 +49,7 @@ def argparser():
     parser.add_argument('--exp-name', help='Experiment Name', required=True, type=str)
     parser.add_argument('--al', help='AL Method', required=True, type=str)
     parser.add_argument('--budget', help='Budget Per Round', required=True, type=int)
+    parser.add_argument('--num_cycles', help='number of AL cycles', default=5, type=int)
     parser.add_argument('--initial_size', help='Size of the initial random labeled set', default=0, type=int)
     parser.add_argument('--seed', help='Random seed', default=1, type=int)
     parser.add_argument('--model_features', help='Model for features extraction', default='clip', type=str)
@@ -63,8 +64,10 @@ def argparser():
     parser.add_argument('--number_of_samples', help='Relevant only to set the number of the selected samples with ProbCover for each iteration', default=10, type=int)
     parser.add_argument('--number_of_smallest_values_to_consider', help='Relevant only to set the number of smallest values to consider for average for clip selection count method with ProbCover', default=3, type=int)
     parser.add_argument('--normalize', help='Relevant only to normalize the cosine similarities between images and text features when using clip selection method', default=False, type=bool)
-    parser.add_argument('--text_embedding_pascalvoc', help='Relevant only to use clip methods with probcover', default='/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/pascalvoc/pretext/text_embedding_pascalvoc_classes_human_RN50.npy', type=str)
-    parser.add_argument('--text_embedding_coco', help='Relevant only to use clip methods with probcover', default='/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/mscoco/pretext/text_embedding_mscoco_classes_human_RN50.npy', type=str)
+    parser.add_argument('--text_embedding_pascalvoc', help='Relevant only to use clip methods with probcover', default='/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/pascalvoc/pretext/text_embedding_pascalvoc_20_classes.npy', type=str)
+    parser.add_argument('--text_embedding_coco', help='Relevant only to use clip methods with probcover', default='/home/ubuntu/master_thesis/covering_lens/TypiClust/scan/results/mscoco/pretext/text_embedding_mscoco_classes_conatining_RN50.npy', type=str)
+    parser.add_argument('--topline_count_method', help='Relevant only to use clip methods with probcover', default='nb_class', type=str) #nb_count nb_count_weighted
+    parser.add_argument('--topline_path', help='path whith the csv where you have save your topline', default='/home/ubuntu/master_thesis/covering_lens/TypiClust/topline_csv/zero_shot_mscoco_02.csv', type=str)
     return parser
 
 
@@ -79,11 +82,6 @@ def main(cfg):
     if cfg.RNG_SEED is None:
         cfg.RNG_SEED = np.random.randint(100)
 
-    # Using specific GPU
-    # os.environ['NVIDIA_VISIBLE_DEVICES'] = str(cfg.GPU_ID)
-    # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    # print("Using GPU : {}.\n".format(cfg.GPU_ID))
-
     # Getting the output directory ready (default is "/output")
     cfg.OUT_DIR = os.path.join(os.path.abspath('../..'), cfg.OUT_DIR)
     if not os.path.exists(cfg.OUT_DIR):
@@ -97,7 +95,14 @@ def main(cfg):
     # E.g., output/CIFAR10/resnet18/{timestamp or cfg.EXP_NAME based on arguments passed}
     if cfg.EXP_NAME == 'auto':
         now = datetime.now()
-        exp_dir = f'{now.year}_{now.month}_{now.day}_{now.hour:02}{now.minute:02}{now.second:02}_{now.microsecond}'
+        model_features = cfg.MODEL_FEATURES
+        method = cfg.METHOD
+        topline = cfg.TOP_LINE
+        delta= cfg.ACTIVE_LEARNING.DELTA
+        budget= cfg.ACTIVE_LEARNING.BUDGET_SIZE
+        sampling_method = cfg.ACTIVE_LEARNING.SAMPLING_FN 
+        seed = cfg.RNG_SEED
+        exp_dir = f'{sampling_method}_{model_features}_{method}_{topline}_{delta}_{budget}_{seed}_{now.month}_{now.day}_{now.hour:02}_{now.minute:02}'
     else:
         exp_dir = cfg.EXP_NAME
 
@@ -207,7 +212,10 @@ def main(cfg):
         for line in lines:
             file_names.append(line.strip())
         
-    
+        selected_files = [file_names[i] for i in lSet]
+        len_dataset = len(lSet)
+        dump_file_episode(cfg, selected_files, cur_episode,len_dataset)
+        
         # No need to perform active sampling in the last episode iteration
         if cur_episode == cfg.ACTIVE_LEARNING.MAX_ITER:
             # Save current lSet, uSet in the final episode directory
@@ -245,9 +253,11 @@ def main(cfg):
 
 
 if __name__ == "__main__":
+    
     args = argparser().parse_args()
+
     cfg.merge_from_file(args.cfg_file)
-    cfg.merge_from_file(args.cfg_file)
+    cfg.ACTIVE_LEARNING.MAX_ITER = args.num_cycles
     cfg.EXP_NAME = args.exp_name
     cfg.ACTIVE_LEARNING.SAMPLING_FN = args.al
     cfg.ACTIVE_LEARNING.BUDGET_SIZE = args.budget
@@ -265,5 +275,6 @@ if __name__ == "__main__":
     cfg.NORMALIZE = args.normalize
     cfg.TEXT_EMBEDDING_PASCALVOC = args.text_embedding_pascalvoc
     cfg.TEXT_EMBEDDING_COCO = args.text_embedding_coco
-
+    cfg.TOPLINE_COUNT_METHOD = args.topline_count_method
+    cfg.TOPLINE_PATH = args.topline_path
     main(cfg)

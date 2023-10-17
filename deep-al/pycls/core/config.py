@@ -260,15 +260,57 @@ def dump_cfg(cfg):
     with open(cfg_file, 'w') as f:
         cfg.dump(stream=f)
 
+def dump_file_episode(cfg, selected_files, episode, len_dataset):
+    """Dumps the file to the output directory."""
+    if cfg.DATASET.NAME == "MSCOCO":
+        
+        if cfg.MODEL_FEATURES == 'clip':
+            selected_filenames = "train_active_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}_seed_{}_episode_{}_len_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES, cfg.RNG_SEED,episode,len_dataset)
+        else: 
+            selected_filenames= "train_active_model_{}_budget_{}_delta_{}_seed_{}_episode_{}_len_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA,cfg.RNG_SEED,episode)
+        
+        file = os.path.join(cfg.EXP_DIR, selected_filenames)
+
+        with open(file, 'w') as f:
+            for selected_image_file_name in selected_files:
+                f.write(selected_image_file_name + '\n')
+
+        convert_to_json(cfg,  selected_files, episode, len_dataset)
+    else:
+        # reading the filenames.txt file
+        filename_2012 = []
+        with open(os.path.join(cfg.DATASET.ROOT_DIR,'VOCdevkit/VOC2012/ImageSets/Main/trainval.txt'), 'r') as f:
+            lines = f.readlines()
+        for line in lines:
+            filename_2012.append(line.strip())
+
+        if cfg.MODEL_FEATURES == 'clip':
+            topline_path = cfg.TOPLINE_PATH.split('/')[-1].split('.c')[0]
+            selected_filenames_2007 = "train_active_2007_model_{}_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}_M_{}_seed_{}_toppath_{}_episode_{}_len_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN,cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES,cfg.TOPLINE_COUNT_METHOD,cfg.RNG_SEED, topline_path,episode, len_dataset)
+            selected_filenames_2012 = "train_active_2012_model_{}_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}_M_{}_seed_{}_toppath_{}_episode_{}_len_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN,cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES,cfg.TOPLINE_COUNT_METHOD,cfg.RNG_SEED, topline_path ,episode, len_dataset)
+        else: 
+            selected_filenames_2007 = "train_active_2007_model_{}_{}_budget_{}_delta_{}_seed_{}_episode_{}_len_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN, cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA,cfg.RNG_SEED, episode, len_dataset)
+            selected_filenames_2012 = "train_active_2012_model_{}_{}_budget_{}_delta_{}_seed_{}_episode_{}_len_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN, cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA,cfg.RNG_SEED, episode, len_dataset)
+        file_1= os.path.join(cfg.EXP_DIR, selected_filenames_2007)
+        file_2= os.path.join(cfg.EXP_DIR, selected_filenames_2012)
+        with open(file_1, 'w') as file_1, open(file_2, 'w') as file_2:
+            for selected_image_file_name in selected_files:
+                selected_image_file_name = selected_image_file_name.strip(".jpg")
+                if selected_image_file_name in filename_2012:
+                    file_2.write(selected_image_file_name + '\n')
+                else:
+                    file_1.write(selected_image_file_name + '\n')
+    
+    
 def dump_file(cfg, selected_files):
     """Dumps the file to the output directory."""
 
     if cfg.DATASET.NAME == "MSCOCO":
         
         if cfg.MODEL_FEATURES == 'clip':
-            selected_filenames = "train_active_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+            selected_filenames = "train_active_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}_seed_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES, cfg.RNG_SEED)
         else: 
-            selected_filenames= "train_active_model_{}_budget_{}_delta_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
+            selected_filenames= "train_active_model_{}_budget_{}_delta_{}_seed_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA,cfg.RNG_SEED)
         
         file = os.path.join(cfg.EXP_DIR, selected_filenames)
 
@@ -286,11 +328,11 @@ def dump_file(cfg, selected_files):
             filename_2012.append(line.strip())
 
         if cfg.MODEL_FEATURES == 'clip':
-            selected_filenames_2007 = "train_active_2007_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
-            selected_filenames_2012 = "train_active_2012_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+            selected_filenames_2007 = "train_active_2007_model_{}_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}_M_{}_seed_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN,cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES,cfg.TOPLINE_COUNT_METHOD,cfg.RNG_SEED)
+            selected_filenames_2012 = "train_active_2012_model_{}_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}_M_{}_seed_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN,cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES,cfg.TOPLINE_COUNT_METHOD,cfg.RNG_SEED)
         else: 
-            selected_filenames_2007 = "train_active_2007_model_{}_budget_{}_delta_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
-            selected_filenames_2012 = "train_active_2012_model_{}_budget_{}_delta_{}.txt".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
+            selected_filenames_2007 = "train_active_2007_model_{}_{}_budget_{}_delta_{}_seed_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN, cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA,cfg.RNG_SEED)
+            selected_filenames_2012 = "train_active_2012_model_{}_{}_budget_{}_delta_{}_seed_{}.txt".format(cfg.ACTIVE_LEARNING.SAMPLING_FN, cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA,cfg.RNG_SEED)
         file_1= os.path.join(cfg.EXP_DIR, selected_filenames_2007)
         file_2= os.path.join(cfg.EXP_DIR, selected_filenames_2012)
         with open(file_1, 'w') as file_1, open(file_2, 'w') as file_2:
@@ -301,11 +343,12 @@ def dump_file(cfg, selected_files):
                 else:
                     file_1.write(selected_image_file_name + '\n')
 
-def convert_to_json(cfg,  selected_files):
+def convert_to_json(cfg,  selected_files ,episode = 0,len_dataset = 0):
     """Converts a COCO format annotation file to a new file containing only the information for selected images."""
 
     if cfg.MODEL_FEATURES == 'clip':
-        json_filename= "instances_train2017_selected_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.json".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+        #json_filename= "instances_train2017_selected_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}.json".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES)
+        json_filename = "train_active_model_{}_budget_{}_delta_{}_method_{}_normalize_{}_top_line_{}_th_{}_N_{}_seed_{}_episode_{}_len_{}.json".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA, cfg.METHOD, cfg.NORMALIZE, cfg.TOP_LINE, cfg.CONST_THRESHOLD, cfg.NUMBER_OF_SAMPLES, cfg.RNG_SEED,episode,len_dataset)
     else: 
         json_filename= "instances_train2017_selected_model_{}_budget_{}_delta_{}.json".format(cfg.MODEL_FEATURES, cfg.ACTIVE_LEARNING.BUDGET_SIZE, cfg.ACTIVE_LEARNING.DELTA)
     json_file = os.path.join(cfg.EXP_DIR, json_filename)
@@ -328,6 +371,7 @@ def convert_to_json(cfg,  selected_files):
                 if annotation['image_id'] == image['id']:
                     selected_coco_json['annotations'].append(annotation)
 
+    #file = os.path.join(cfg.EXP_DIR, selected_filenames)
     # Write the new COCO annotation file
     with open(json_file, 'w') as f:
         json.dump(selected_coco_json, f)

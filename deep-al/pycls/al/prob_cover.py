@@ -31,9 +31,7 @@ class ProbCover:
 
         if self.model_features == "clip":
             self.cfg.counts[0]=self.get_image_counts(self.text_embeddings, self.rel_features)
-            # TO DO: explication
             self.cfg.threshold[0]= self.distribute_images_evenly(self.cfg.counts[0],6*self.budgetSize) * self.const_threshold 
-            # TO DO: explication
             self.thresholds=self.compute_thresholds(self.text_embeddings, self.rel_features, len(self.text_embeddings))
         
         self.graph_df = self.construct_graph()
@@ -59,7 +57,9 @@ class ProbCover:
         print("Loading Labels")
         if cfg.DATASET.NAME == "MSCOCO":
 
-            self.df_labels = pd.read_csv('/home/ubuntu/master_thesis/top_line/df_top_line_mscoco.csv',index_col=0)
+            
+            top_line_path = cfg.TOPLINE_PATH 
+            self.df_labels = pd.read_csv(top_line_path,index_col=0)
             self.class_list=[
                     'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
                     'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
@@ -75,7 +75,8 @@ class ProbCover:
     
 
         elif cfg.DATASET.NAME == "PASCALVOC":
-            self.df_labels = pd.read_csv('/home/ubuntu/master_thesis/top_line/df_top_line.csv',index_col=0)
+            top_line_path = cfg.TOPLINE_PATH 
+            self.df_labels = pd.read_csv(top_line_path,index_col=0)
             self.class_list=['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor']
 
 
@@ -105,7 +106,6 @@ class ProbCover:
         Return:
         counts (numpy.array): Count of images that correspond to each class based on highest similarity
         """
-        # TO DO: Inverse as compute_clip_distance if necessary
         similarities = cosine_similarity(text_features, image_features)
         class_indices = np.argmax(similarities, axis=0)
         unique_values, counts = np.unique(class_indices, return_counts=True)
@@ -219,6 +219,32 @@ class ProbCover:
         threshold = high_val - (high_val - low_val) * thresh  # Adjust the threshold value as needed
         extracted_values = [value for value in lst if value > threshold]
         count = len(extracted_values)
+        return count
+    
+    def extract_values_above_others_new(self, lst, k, thresh):
+        """
+        Extract values from a list that are above a certain threshold.
+        The threshold is determined based on the highest value in the list and the average of the smallest 'k' values.
+        
+        Args:
+        lst (list): List of numerical values
+        k (int): Number of smallest values to consider for average
+        thresh (float): Threshold fraction to consider for extraction 
+
+        Return:
+        count (int): Count of values in the list that are above the computed threshold.
+        """
+
+        lst_sorted = sorted(lst)
+        low_val = sum(lst_sorted[:k]) / k
+        high_val = max(lst)
+        threshold = high_val - (high_val - low_val) * thresh  # Adjust the threshold value as needed
+        #extracted_values = [value for value in lst if value > threshold]
+        indices = [index for index, value in enumerate(lst) if value > threshold]
+        #values = [value for index, value in enumerate(lst) if value > threshold]
+
+        count = [1 if value>threshold else 0 for value in lst]
+        
         return count
 
     def distribute_images_evenly(self, number_of_image_per_class, total_of_selected_images):
@@ -372,31 +398,78 @@ class ProbCover:
                 
             # Count objects
             if 'clip_selection_max_object' in self.method:
-
+                
                 indices_images=degrees.argsort()[::-1][:self.number_of_samples]
 
                 if self.top_line:
-                    
+
                     image_names=[self.rel_file_names[image] for image in indices_images]
                 
-                    df_image_selection=self.df_labels[self.df_labels['Image Filename'].isin(image_names)]
+                    df_image_selection=self.df_labels[self.df_labels['Image Filename'].isin(image_names)].copy()
 
-                    image_selected=df_image_selection['Image Filename'][df_image_selection['count_diff_class'].idxmax()]
+                    if self.cfg.TOPLINE_COUNT_METHOD == 'per_class':
+                        image_selected=df_image_selection['Image Filename'][df_image_selection['count_diff_class'].idxmax()]
 
+                    if self.cfg.TOPLINE_COUNT_METHOD == 'per_object':
+                        image_selected=df_image_selection['Image Filename'][df_image_selection['count'].idxmax()]
+                    
+                    if self.cfg.TOPLINE_COUNT_METHOD == 'per_object_weighted':
+            
+                        # add weight to each class
+                        # Find the maximum value in the dictionary
+                        max_value = max(self.cfg.count_class[0].values())
+
+                        # Create a new dictionary with weights for each class, (count if count != 0 else 10)
+                        # but first check if the count is zero and set it to a default value if needed
+                        weights = {cls:  (max_value/count if count != 0 else 10) for cls, count in self.cfg.count_class[0].items()}
+                        
+                        df_image_selection['count_weighted'] = df_image_selection.apply(lambda row: sum(row[col] * weights[col] for col in self.class_list), axis=1)
+                 
+                        image_selected=df_image_selection['Image Filename'][df_image_selection['count_weighted'].idxmax()]    
+                        # Update counter:
+                        info_image = df_image_selection[df_image_selection['Image Filename']==image_selected]
+                        for class_name in self.class_list:
+                            self.cfg.count_class[0][class_name] += info_image[class_name].values[0]
                     cur = indices_images[image_names.index(image_selected)]
 
+                    # Add a weight to each class, weight proportional to best class
+                    # Do that but use count instead of diff_class 
+                    
+                        # -> Check performance
+                        
                 else:
-           
+     
                     similarities=cosine_similarity(self.text_embeddings,self.rel_features[indices_images])
                     
                     if 'v2' in self.method:
+
                         num_images = similarities.shape[1]  # Get the number of images (N in this case)
                         class_counts = []
 
+                        #compute weights:
+                        max_value = max(self.cfg.count_class[0].values())
+                        #weights = {cls:  (max_value/count if count != 0 else 10) for cls, count in self.cfg.count_class[0].items()}
+                        weights = {cls:  1 for cls, count in self.cfg.count_class[0].items()}
+                        
+                        score_max=0
                         for image_index in range(num_images):
-                            image_similarities = similarities[:, image_index]  # Get the similarity values for the current image
-                            class_counts.append(self.extract_values_above_others(image_similarities, self.number_of_smallest_values_to_consider, self.const_threshold))
+                            image_similarities = similarities[:, image_index]  # Get the similarity values for the current image    
+                            #class_counts.append(self.extract_values_above_others(image_similarities, self.number_of_smallest_values_to_consider, self.const_threshold))
+                            count_list = self.extract_values_above_others_new(image_similarities, self.number_of_smallest_values_to_consider, self.const_threshold)
+                           
+                            score = 0
+                            for i in range(len(self.class_list)):
+                                score += count_list[i]*weights[self.class_list[i]]
+                            if score>score_max:
+                                count_list_final = count_list
+                                score_max = score
+
+                            class_counts.append(score)
+                        for i, count_class in enumerate(count_list_final):
+                            self.cfg.count_class[0][self.class_list[i]] += count_class
+                            
                     else:
+                        print('================= USING MAX OBJECT ORIGINAL =================')
                         if self.normalize:
                             similarities = self.normalize_similarity_matrix(similarities)
 
@@ -407,13 +480,14 @@ class ProbCover:
                     sorted_image_indices = np.argsort(class_counts)[::-1]
             
                     cur = indices_images[sorted_image_indices[0]]
-                    print("cur", cur)
+                    #print("cur", cur)
      
             
         
             elif self.method == 'clip_selection_balanced_classes':
 
                 if self.top_line:
+
                     # Get best image 
                     indices_images=degrees.argsort()[::-1][:self.number_of_samples]
                     
@@ -435,6 +509,7 @@ class ProbCover:
                     
 
                 else:
+
                     check=True
                     while(check):
                         
